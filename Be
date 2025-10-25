@@ -1,0 +1,84 @@
+--// ⚙️ BE UI Library Base v1.0 by Legiahuy
+--// Giao diện trống, có nút bật/tắt trong suốt (chỉnh được ID ảnh)
+--// Dành để build library hoặc xuất GitHub
+
+if game.CoreGui:FindFirstChild("BE_UI") then
+	game.CoreGui.BE_UI:Destroy()
+end
+
+local TweenService = game:GetService("TweenService")
+
+-- 🖼️ CHỈNH ID LOGO TẠI ĐÂY
+local LogoImageID = "114273012202623" -- đổi ID ảnh tại đây
+
+-- ⚙️ UI gốc
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "BE_UI"
+ScreenGui.Parent = game.CoreGui
+ScreenGui.ResetOnSpawn = false
+
+-- ⚙️ Nút bật tắt
+local ToggleButton = Instance.new("ImageButton")
+ToggleButton.Parent = ScreenGui
+ToggleButton.Size = UDim2.new(0, 55, 0, 55)
+ToggleButton.Position = UDim2.new(0, 25, 0.8, 0)
+ToggleButton.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+ToggleButton.BackgroundTransparency = 0.7
+ToggleButton.Image = LogoImageID
+ToggleButton.ScaleType = Enum.ScaleType.Fit
+ToggleButton.ZIndex = 5
+
+local UICorner1 = Instance.new("UICorner", ToggleButton)
+UICorner1.CornerRadius = UDim.new(1, 0)
+
+-- ⚙️ Frame chính
+local MainFrame = Instance.new("Frame")
+MainFrame.Parent = ScreenGui
+MainFrame.Size = UDim2.new(0, 420, 0, 320)
+MainFrame.Position = UDim2.new(0.5, -210, 0.5, -160)
+MainFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 30)
+MainFrame.Visible = false
+MainFrame.Active = true
+MainFrame.Draggable = true
+MainFrame.BorderSizePixel = 0
+
+local UICorner2 = Instance.new("UICorner", MainFrame)
+UICorner2.CornerRadius = UDim.new(0, 12)
+
+-- ⚙️ Thanh tiêu đề
+local TitleBar = Instance.new("Frame", MainFrame)
+TitleBar.Size = UDim2.new(1, 0, 0, 40)
+TitleBar.BackgroundColor3 = Color3.fromRGB(35, 35, 40)
+TitleBar.BorderSizePixel = 0
+local UICorner3 = Instance.new("UICorner", TitleBar)
+UICorner3.CornerRadius = UDim.new(0, 12)
+
+local TitleLabel = Instance.new("TextLabel", TitleBar)
+TitleLabel.Text = "🌌 BE UI Library"
+TitleLabel.Font = Enum.Font.GothamBold
+TitleLabel.TextSize = 16
+TitleLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+TitleLabel.BackgroundTransparency = 1
+TitleLabel.Size = UDim2.new(1, -20, 1, 0)
+TitleLabel.Position = UDim2.new(0, 10, 0, 0)
+TitleLabel.TextXAlignment = Enum.TextXAlignment.Left
+
+-- ⚙️ Khung nội dung (trống để thêm sau)
+local Container = Instance.new("ScrollingFrame", MainFrame)
+Container.Size = UDim2.new(1, -20, 1, -60)
+Container.Position = UDim2.new(0, 10, 0, 50)
+Container.BackgroundTransparency = 1
+Container.CanvasSize = UDim2.new(0, 0, 0, 0)
+Container.ScrollBarThickness = 5
+
+local Layout = Instance.new("UIListLayout", Container)
+Layout.Padding = UDim.new(0, 8)
+Layout.SortOrder = Enum.SortOrder.LayoutOrder
+
+-- ⚙️ Hiệu ứng bật tắt
+ToggleButton.MouseButton1Click:Connect(function()
+	MainFrame.Visible = not MainFrame.Visible
+	local tween = TweenService:Create(MainFrame, TweenInfo.new(0.25, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
+		{BackgroundTransparency = MainFrame.Visible and 0 or 1})
+	tween:Play()
+end)
