@@ -1,0 +1,253 @@
+--!strict
+
+local NextUI = {}
+
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
+local TweenService = game:GetService("TweenService")
+
+NextUI.Theme = {
+    Primary = Color3.fromRGB(138, 43, 226),
+    Accent = Color3.fromRGB(173, 216, 230),
+    Background = Color3.fromRGB(25, 25, 35),
+    Surface = Color3.fromRGB(35, 35, 50),
+    Text = Color3.fromRGB(240, 240, 240),
+    Stroke = Color3.fromRGB(50, 50, 65),
+    Padding = 12
+}
+
+NextUI.Components = {}
+
+-- Base Component
+local Component = {}
+Component.__index = Component
+
+function Component.new(instance: GuiObject, parent: Instance?)
+    local self = setmetatable({
+        Instance = instance,
+        Connections = {}
+    }, Component)
+
+    if parent then
+        instance.Parent = parent
+    end
+
+    table.insert(NextUI.Components, self)
+    return self
+end
+
+function Component:Destroy()
+    for _, conn in ipairs(self.Connections) do
+        if typeof(conn) == "RBXScriptConnection" then
+            conn:Disconnect()
+        end
+    end
+    self.Connections = {}
+    self.Instance:Destroy()
+    local index = table.find(NextUI.Components, self)
+    if index then table.remove(NextUI.Components, index) end
+end
+
+function Component:Tween(properties: {}, time: number)
+    local tweenInfo = TweenInfo.new(time, Enum.EasingStyle.Quart, Enum.EasingDirection.Out)
+    TweenService:Create(self.Instance, tweenInfo, properties):Play()
+end
+
+-- Window class
+local Window = {}
+Window.__index = Window
+setmetatable(Window, { __index = Component })
+
+function Window.new(title: string)
+    local ScreenGui = Component.new(Instance.new("ScreenGui"), PlayerGui)
+    ScreenGui.Instance.Name = "NextUISystem"
+    ScreenGui.Instance.ResetOnSpawn = false
+
+    local Frame = Instance.new("Frame")
+    Frame.Size = UDim2.new(0, 300, 0, 400)
+    Frame.Position = UDim2.new(0.5, -150, 0.5, -200)
+    Frame.BackgroundColor3 = NextUI.Theme.Background
+    Frame.BorderSizePixel = 0
+    Frame.Name = title
+
+    local Corner = Instance.new("UICorner")
+    Corner.CornerRadius = UDim.new(0, 8)
+    Corner.Parent = Frame
+
+    local Stroke = Instance.new("UIStroke")
+    Stroke.Color = NextUI.Theme.Stroke
+    Stroke.Thickness = 1
+    Stroke.Parent = Frame
+
+    local self = Component.new(Frame, ScreenGui.Instance)
+    setmetatable(self, Window)
+    self.ScreenGui = ScreenGui.Instance
+    self.Visible = true -- trạng thái UI hiện
+
+    -- Header
+    local Header = Instance.new("Frame")
+    Header.Size = UDim2.new(1, 0, 0, 30)
+    Header.BackgroundColor3 = NextUI.Theme.Surface
+    Header.BorderSizePixel = 0
+    Header.Parent = Frame
+
+    local TitleLabel = Instance.new("TextLabel")
+    TitleLabel.Text = title
+    TitleLabel.Font = Enum.Font.GothamBold
+    TitleLabel.TextSize = 16
+    TitleLabel.TextColor3 = NextUI.Theme.Text
+    TitleLabel.BackgroundTransparency = 1
+    TitleLabel.Size = UDim2.new(1, -50, 1, 0) -- để chừa chỗ toggle
+    TitleLabel.Position = UDim2.new(0, 10, 0, 0)
+    TitleLabel.TextXAlignment = Enum.TextXAlignment.Left
+    TitleLabel.Parent = Header
+
+    -- Toggle Button (Hiện / Ẩn UI)
+    local ToggleButton = Instance.new("TextButton")
+    ToggleButton.Size = UDim2.new(0, 30, 0, 30)
+    ToggleButton.Position = UDim2.new(1, -35, 0, 0)
+    ToggleButton.BackgroundColor3 = NextUI.Theme.Primary
+    ToggleButton.BorderSizePixel = 0
+    ToggleButton.Text = "-"
+    ToggleButton.Font = Enum.Font.GothamBold
+    ToggleButton.TextSize = 18
+    ToggleButton.TextColor3 = NextUI.Theme.Text
+    ToggleButton.Parent = Header
+
+    ToggleButton.MouseButton1Click:Connect(function()
+        self.Visible = not self.Visible
+        self.Container.Visible = self.Visible
+        ToggleButton.Text = self.Visible and "-" or "+"
+    end)
+
+    self:MakeDraggable(Header)
+
+    -- Container
+    self.Container = Instance.new("Frame")
+    self.Container.Name = "ContentContainer"
+    self.Container.Size = UDim2.new(1, 0, 1, -30)
+    self.Container.Position = UDim2.new(0, 0, 0, 30)
+    self.Container.BackgroundTransparency = 1
+    self.Container.Parent = Frame
+
+    return self
+end
+
+function Window:MakeDraggable(header: GuiObject)
+    local isDragging = false
+    local dragStartPos = Vector2.zero
+    local startFramePos = UDim2.new(0, 0, 0, 0)
+
+    table.insert(self.Connections, header.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            isDragging = true
+            dragStartPos = header.AbsolutePosition + (header.AbsoluteSize / 2)
+            startFramePos = self.Instance.Position
+        end
+    end))
+
+    table.insert(self.Connections, header.InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            isDragging = false
+        end
+    end))
+
+    table.insert(self.Connections, game:GetService("RunService").Heartbeat:Connect(function()
+        if isDragging then
+            local newMousePos = Players.LocalPlayer:GetMouse().Hit.Position
+            local delta = newMousePos - dragStartPos
+
+            local newPosX = startFramePos.X.Offset + delta.X
+            local newPosY = startFramePos.Y.Offset + delta.Y
+
+            newPosX = math.clamp(newPosX, -self.Instance.AbsoluteSize.X + 10, PlayerGui.AbsoluteSize.X - 10)
+            newPosY = math.clamp(newPosY, -self.Instance.AbsoluteSize.Y + 10, PlayerGui.AbsoluteSize.Y - 10)
+
+            self.Instance.Position = UDim2.new(startFramePos.X.Scale, newPosX, startFramePos.Y.Scale, newPosY)
+        end
+    end))
+end
+
+function Window:AddComponent(component: GuiObject)
+    component.Parent = self.Container
+end
+
+-- Button class
+local Button = {}
+Button.__index = Button
+setmetatable(Button, { __index = Component })
+
+function Button.new(title: string, callback: (() -> ())?)
+    local Button = Instance.new("TextButton")
+    Button.Size = UDim2.new(1, 0, 0, 32)
+    Button.BackgroundColor3 = NextUI.Theme.Primary * 0.7
+    Button.BorderSizePixel = 0
+    Button.Text = title
+    Button.Font = Enum.Font.GothamBold
+    Button.TextSize = 14
+    Button.TextColor3 = NextUI.Theme.Text
+
+    local Corner = Instance.new("UICorner")
+    Corner.CornerRadius = UDim.new(0, 5)
+    Corner.Parent = Button
+
+    local self = Component.new(Button, nil)
+    setmetatable(self, Button)
+
+    self:ApplyEffects(callback)
+    return self
+end
+
+function Button:ApplyEffects(callback: (() -> ())?)
+    local button = self.Instance
+    local defaultColor = NextUI.Theme.Primary * 0.7
+    local hoverColor = NextUI.Theme.Primary
+    local clickColor = NextUI.Theme.Primary * 1.2
+
+    table.insert(self.Connections, button.MouseEnter:Connect(function()
+        self:Tween({BackgroundColor3 = hoverColor}, 0.15)
+    end))
+
+    table.insert(self.Connections, button.MouseLeave:Connect(function()
+        self:Tween({BackgroundColor3 = defaultColor}, 0.15)
+    end))
+
+    if callback then
+        table.insert(self.Connections, button.Activated:Connect(function()
+            self:Tween({BackgroundColor3 = clickColor}, 0.05)
+            task.wait(0.05)
+            self:Tween({BackgroundColor3 = hoverColor}, 0.1)
+            callback()
+        end))
+    end
+end
+
+-- Example
+local MainWindo = Window.new("Purple Theme Dashboard")
+
+local ListLayout = Instance.new("UIListLayout")
+ListLayout.Padding = UDim.new(0, NextUI.Theme.Padding)
+ListLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+ListLayout.VerticalAlignment = Enum.VerticalAlignment.Top
+ListLayout.SortOrder = Enum.SortOrder.LayoutOrder
+ListLayout.Parent = MainWindo.Container
+
+local Padding = Instance.new("UIPadding")
+Padding.PaddingTop = UDim.new(0, NextUI.Theme.Padding)
+Padding.PaddingBottom = UDim.new(0, NextUI.Theme.Padding)
+Padding.PaddingLeft = UDim.new(0, NextUI.Theme.Padding)
+Padding.PaddingRight = UDim.new(0, NextUI.Theme.Padding)
+Padding.Parent = MainWindo.Container
+
+local Button1 = Button.new("In ra Console", function()
+    print("NextUI (Purple Theme): Button 1 đã được bấm!")
+end)
+MainWindo:AddComponent(Button1.Instance)
+
+local Button2 = Button.new("Tắt UI", function()
+    MainWindo:Destroy()
+end)
+MainWindo:AddComponent(Button2.Instance)
+
+return NextUI
