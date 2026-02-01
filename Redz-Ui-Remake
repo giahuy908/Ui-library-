@@ -1,0 +1,183 @@
+--[[
+  REMAKE UI LIBRARY
+  ĐẸP – KÉO ĐƯỢC – TOGGLE UI – KHÔNG THIẾU CHỨC NĂNG
+  Giữ logic cũ, làm UI mượt + không lỗi
+]]
+
+local Players = game:GetService("Players")
+local TweenService = game:GetService("TweenService")
+local UserInputService = game:GetService("UserInputService")
+local CoreGui = game:GetService("CoreGui")
+
+local Player = Players.LocalPlayer
+
+-- Destroy old UI
+pcall(function()
+    CoreGui:FindFirstChild("RemakeUILib"):Destroy()
+end)
+
+-- MAIN GUI
+local Gui = Instance.new("ScreenGui", CoreGui)
+Gui.Name = "RemakeUILib"
+Gui.ResetOnSpawn = false
+
+-- MAIN FRAME
+local Main = Instance.new("Frame", Gui)
+Main.Size = UDim2.fromOffset(560, 380)
+Main.Position = UDim2.fromScale(0.5, 0.5)
+Main.AnchorPoint = Vector2.new(0.5, 0.5)
+Main.BackgroundColor3 = Color3.fromRGB(25,25,25)
+Main.BorderSizePixel = 0
+Main.Visible = true
+
+Instance.new("UICorner", Main).CornerRadius = UDim.new(0,16)
+
+-- SHADOW
+local Shadow = Instance.new("ImageLabel", Main)
+Shadow.Size = UDim2.new(1, 40, 1, 40)
+Shadow.Position = UDim2.fromOffset(-20, -20)
+Shadow.Image = "rbxassetid://6014261993"
+Shadow.ImageTransparency = 0.5
+Shadow.BackgroundTransparency = 1
+Shadow.ZIndex = 0
+
+-- TOP BAR
+local Top = Instance.new("Frame", Main)
+Top.Size = UDim2.new(1,0,0,45)
+Top.BackgroundColor3 = Color3.fromRGB(30,30,30)
+Top.BorderSizePixel = 0
+Instance.new("UICorner", Top).CornerRadius = UDim.new(0,16)
+
+-- TITLE
+local Title = Instance.new("TextLabel", Top)
+Title.Size = UDim2.new(1, -100, 1, 0)
+Title.Position = UDim2.fromOffset(20,0)
+Title.Text = "Remake UI Library"
+Title.Font = Enum.Font.GothamBold
+Title.TextSize = 18
+Title.TextXAlignment = Left
+Title.TextColor3 = Color3.fromRGB(230,230,230)
+Title.BackgroundTransparency = 1
+
+-- CLOSE / TOGGLE BUTTON
+local HideBtn = Instance.new("TextButton", Top)
+HideBtn.Size = UDim2.fromOffset(40, 30)
+HideBtn.Position = UDim2.fromScale(1, 0.5)
+HideBtn.AnchorPoint = Vector2.new(1,0.5)
+HideBtn.Text = "–"
+HideBtn.Font = Enum.Font.GothamBold
+HideBtn.TextSize = 22
+HideBtn.TextColor3 = Color3.fromRGB(255,255,255)
+HideBtn.BackgroundColor3 = Color3.fromRGB(45,45,45)
+HideBtn.BorderSizePixel = 0
+Instance.new("UICorner", HideBtn).CornerRadius = UDim.new(0,10)
+
+-- CONTENT
+local Content = Instance.new("Frame", Main)
+Content.Size = UDim2.new(1,-20,1,-70)
+Content.Position = UDim2.fromOffset(10,55)
+Content.BackgroundTransparency = 1
+
+local Layout = Instance.new("UIListLayout", Content)
+Layout.Padding = UDim.new(0,10)
+
+-- DRAG SYSTEM
+local dragging, dragStart, startPos
+Top.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        dragging = true
+        dragStart = input.Position
+        startPos = Main.Position
+        input.Changed:Connect(function()
+            if input.UserInputState == Enum.UserInputState.End then
+                dragging = false
+            end
+        end)
+    end
+end)
+
+UserInputService.InputChanged:Connect(function(input)
+    if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
+        local delta = input.Position - dragStart
+        Main.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+    end
+end)
+
+-- TOGGLE UI KEY (RightShift)
+UserInputService.InputBegan:Connect(function(input, gpe)
+    if not gpe and input.KeyCode == Enum.KeyCode.RightShift then
+        Main.Visible = not Main.Visible
+    end
+end)
+
+-- BUTTON CREATOR
+local function CreateButton(text, callback)
+    local Btn = Instance.new("TextButton")
+    Btn.Size = UDim2.new(1,0,0,40)
+    Btn.Text = text
+    Btn.Font = Enum.Font.Gotham
+    Btn.TextSize = 14
+    Btn.TextColor3 = Color3.fromRGB(240,240,240)
+    Btn.BackgroundColor3 = Color3.fromRGB(35,35,35)
+    Btn.BorderSizePixel = 0
+    Instance.new("UICorner", Btn).CornerRadius = UDim.new(0,12)
+
+    Btn.MouseButton1Click:Connect(function()
+        TweenService:Create(Btn, TweenInfo.new(0.15), {BackgroundColor3 = Color3.fromRGB(60,60,60)}):Play()
+        task.wait(0.15)
+        TweenService:Create(Btn, TweenInfo.new(0.15), {BackgroundColor3 = Color3.fromRGB(35,35,35)}):Play()
+        pcall(callback)
+    end)
+
+    Btn.Parent = Content
+end
+
+-- TOGGLE CREATOR
+local function CreateToggle(text, default, callback)
+    local Holder = Instance.new("Frame")
+    Holder.Size = UDim2.new(1,0,0,40)
+    Holder.BackgroundColor3 = Color3.fromRGB(35,35,35)
+    Holder.BorderSizePixel = 0
+    Instance.new("UICorner", Holder).CornerRadius = UDim.new(0,12)
+
+    local Label = Instance.new("TextLabel", Holder)
+    Label.Size = UDim2.new(1,-60,1,0)
+    Label.Position = UDim2.fromOffset(15,0)
+    Label.Text = text
+    Label.Font = Enum.Font.Gotham
+    Label.TextSize = 14
+    Label.TextXAlignment = Left
+    Label.TextColor3 = Color3.fromRGB(230,230,230)
+    Label.BackgroundTransparency = 1
+
+    local Toggle = Instance.new("TextButton", Holder)
+    Toggle.Size = UDim2.fromOffset(40,22)
+    Toggle.Position = UDim2.fromScale(1,0.5)
+    Toggle.AnchorPoint = Vector2.new(1,0.5)
+    Toggle.Text = ""
+    Toggle.BackgroundColor3 = default and Color3.fromRGB(0,170,255) or Color3.fromRGB(60,60,60)
+    Toggle.BorderSizePixel = 0
+    Instance.new("UICorner", Toggle).CornerRadius = UDim.new(1,0)
+
+    local state = default
+    Toggle.MouseButton1Click:Connect(function()
+        state = not state
+        TweenService:Create(Toggle, TweenInfo.new(0.2), {
+            BackgroundColor3 = state and Color3.fromRGB(0,170,255) or Color3.fromRGB(60,60,60)
+        }):Play()
+        pcall(callback, state)
+    end)
+
+    Holder.Parent = Content
+end
+
+-- DEMO
+CreateButton("Test Button", function()
+    print("Button Clicked")
+end)
+
+CreateToggle("Auto Attack", false, function(v)
+    print("Toggle:", v)
+end)
+
+return Gui
