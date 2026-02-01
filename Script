@@ -1,0 +1,174 @@
+--// Simple Modern UI Library Remake
+--// By ChatGPT | Roblox Lua
+
+local TweenService = game:GetService("TweenService")
+local UserInputService = game:GetService("UserInputService")
+local Players = game:GetService("Players")
+local Player = Players.LocalPlayer
+
+local Library = {}
+Library.Theme = {
+	Background = Color3.fromRGB(25,25,25),
+	Top = Color3.fromRGB(30,30,30),
+	Stroke = Color3.fromRGB(45,45,45),
+	Text = Color3.fromRGB(240,240,240),
+	Accent = Color3.fromRGB(88,101,242)
+}
+
+--// Create ScreenGui
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "ModernUILib"
+ScreenGui.ResetOnSpawn = false
+ScreenGui.Parent = game:GetService("CoreGui")
+
+--// Drag Function
+local function MakeDraggable(frame, dragPart)
+	local dragging, dragInput, startPos, startInputPos
+
+	dragPart.InputBegan:Connect(function(input)
+		if input.UserInputType == Enum.UserInputType.MouseButton1 then
+			dragging = true
+			startInputPos = input.Position
+			startPos = frame.Position
+		end
+	end)
+
+	UserInputService.InputChanged:Connect(function(input)
+		if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
+			local delta = input.Position - startInputPos
+			frame.Position = UDim2.new(
+				startPos.X.Scale,
+				startPos.X.Offset + delta.X,
+				startPos.Y.Scale,
+				startPos.Y.Offset + delta.Y
+			)
+		end
+	end)
+
+	UserInputService.InputEnded:Connect(function(input)
+		if input.UserInputType == Enum.UserInputType.MouseButton1 then
+			dragging = false
+		end
+	end)
+end
+
+--// Window
+function Library:CreateWindow(title)
+	local Window = {}
+
+	local Main = Instance.new("Frame")
+	Main.Size = UDim2.fromOffset(560, 380)
+	Main.Position = UDim2.fromScale(0.5, 0.5)
+	Main.AnchorPoint = Vector2.new(0.5,0.5)
+	Main.BackgroundColor3 = self.Theme.Background
+	Main.Parent = ScreenGui
+	Main.ClipsDescendants = true
+
+	local Stroke = Instance.new("UIStroke", Main)
+	Stroke.Color = self.Theme.Stroke
+
+	local Corner = Instance.new("UICorner", Main)
+	Corner.CornerRadius = UDim.new(0,10)
+
+	local Top = Instance.new("Frame")
+	Top.Size = UDim2.new(1,0,0,42)
+	Top.BackgroundColor3 = self.Theme.Top
+	Top.Parent = Main
+
+	local TopCorner = Instance.new("UICorner", Top)
+	TopCorner.CornerRadius = UDim.new(0,10)
+
+	local Title = Instance.new("TextLabel")
+	Title.Size = UDim2.new(1, -20, 1, 0)
+	Title.Position = UDim2.fromOffset(10,0)
+	Title.BackgroundTransparency = 1
+	Title.Text = title or "Window"
+	Title.TextColor3 = self.Theme.Text
+	Title.Font = Enum.Font.GothamBold
+	Title.TextSize = 16
+	Title.TextXAlignment = Left
+	Title.Parent = Top
+
+	MakeDraggable(Main, Top)
+
+	local TabHolder = Instance.new("Frame")
+	TabHolder.Size = UDim2.new(0,150,1,-42)
+	TabHolder.Position = UDim2.fromOffset(0,42)
+	TabHolder.BackgroundTransparency = 1
+	TabHolder.Parent = Main
+
+	local TabLayout = Instance.new("UIListLayout", TabHolder)
+	TabLayout.Padding = UDim.new(0,6)
+
+	local Content = Instance.new("Frame")
+	Content.Size = UDim2.new(1,-160,1,-52)
+	Content.Position = UDim2.fromOffset(155,47)
+	Content.BackgroundTransparency = 1
+	Content.Parent = Main
+
+	--// Create Tab
+	function Window:CreateTab(name)
+		local Tab = {}
+
+		local TabButton = Instance.new("TextButton")
+		TabButton.Size = UDim2.new(1,-10,0,36)
+		TabButton.Position = UDim2.fromOffset(5,0)
+		TabButton.Text = name
+		TabButton.Font = Enum.Font.Gotham
+		TabButton.TextSize = 14
+		TabButton.TextColor3 = Library.Theme.Text
+		TabButton.BackgroundColor3 = Library.Theme.Top
+		TabButton.Parent = TabHolder
+
+		local TCorner = Instance.new("UICorner", TabButton)
+		TCorner.CornerRadius = UDim.new(0,8)
+
+		local Page = Instance.new("ScrollingFrame")
+		Page.Size = UDim2.fromScale(1,1)
+		Page.CanvasSize = UDim2.new(0,0,0,0)
+		Page.ScrollBarImageTransparency = 1
+		Page.Visible = false
+		Page.Parent = Content
+
+		local Layout = Instance.new("UIListLayout", Page)
+		Layout.Padding = UDim.new(0,8)
+
+		Layout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
+			Page.CanvasSize = UDim2.new(0,0,0,Layout.AbsoluteContentSize.Y + 10)
+		end)
+
+		TabButton.MouseButton1Click:Connect(function()
+			for _,v in pairs(Content:GetChildren()) do
+				if v:IsA("ScrollingFrame") then
+					v.Visible = false
+				end
+			end
+			Page.Visible = true
+		end)
+
+		--// Button
+		function Tab:AddButton(text, callback)
+			local Btn = Instance.new("TextButton")
+			Btn.Size = UDim2.new(1,-10,0,36)
+			Btn.Text = text
+			Btn.Font = Enum.Font.Gotham
+			Btn.TextSize = 14
+			Btn.TextColor3 = Library.Theme.Text
+			Btn.BackgroundColor3 = Library.Theme.Top
+			Btn.Parent = Page
+
+			local C = Instance.new("UICorner", Btn)
+			C.CornerRadius = UDim.new(0,8)
+
+			Btn.MouseButton1Click:Connect(function()
+				pcall(callback)
+			end)
+		end
+
+		return Tab
+	end
+
+	return Window
+end
+
+return Library
