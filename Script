@@ -1,144 +1,246 @@
---// Professional UI Library
-local Library = {}
-local Players = game:GetService("Players")
+--// PRO UI LIBRARY v3
 local TweenService = game:GetService("TweenService")
 local UIS = game:GetService("UserInputService")
+local Players = game:GetService("Players")
 local Player = Players.LocalPlayer
 
---// Create Window
+local Library = {}
+Library.Theme = {
+	BG = Color3.fromRGB(22,22,22),
+	Top = Color3.fromRGB(28,28,28),
+	Block = Color3.fromRGB(34,34,34),
+	Text = Color3.fromRGB(240,240,240),
+	Accent = Color3.fromRGB(90,140,255)
+}
+
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Parent = game.CoreGui
+ScreenGui.ResetOnSpawn = false
+
+-- Drag
+local function Dragify(frame, top)
+	local dragging, dragInput, startPos, startFrame
+	top.InputBegan:Connect(function(i)
+		if i.UserInputType == Enum.UserInputType.MouseButton1 then
+			dragging = true
+			startPos = i.Position
+			startFrame = frame.Position
+		end
+	end)
+	top.InputEnded:Connect(function(i)
+		if i.UserInputType == Enum.UserInputType.MouseButton1 then
+			dragging = false
+		end
+	end)
+	UIS.InputChanged:Connect(function(i)
+		if dragging and i.UserInputType == Enum.UserInputType.MouseMovement then
+			local delta = i.Position - startPos
+			frame.Position = startFrame + UDim2.fromOffset(delta.X, delta.Y)
+		end
+	end)
+end
+
+-- Window
 function Library:CreateWindow(cfg)
 	cfg = cfg or {}
-	local TitleText = cfg.Title or "UI Hub"
-	local KeySystem = cfg.KeySystem
-
-	-- Key System
-	if KeySystem and KeySystem.Enabled then
-		if KeySystem.Key ~= "on" then
-			Player:Kick("Sai Key ❌")
-			return
-		end
-	end
-
-	local ScreenGui = Instance.new("ScreenGui", game.CoreGui)
-	ScreenGui.ResetOnSpawn = false
+	local Window = {}
+	local visible = true
 
 	local Main = Instance.new("Frame", ScreenGui)
-	Main.Size = UDim2.fromOffset(560, 380)
+	Main.Size = UDim2.fromOffset(600,420)
 	Main.Position = UDim2.fromScale(0.5,0.5)
 	Main.AnchorPoint = Vector2.new(0.5,0.5)
-	Main.BackgroundColor3 = Color3.fromRGB(28,28,28)
-	Main.Active = true
-	Main.Draggable = true
-	Instance.new("UICorner", Main).CornerRadius = UDim.new(0,14)
+	Main.BackgroundColor3 = Library.Theme.BG
+	Instance.new("UICorner", Main).CornerRadius = UDim.new(0,16)
 
-	local Title = Instance.new("TextLabel", Main)
-	Title.Size = UDim2.new(1,0,0,42)
-	Title.Text = TitleText
+	local Top = Instance.new("Frame", Main)
+	Top.Size = UDim2.new(1,0,0,46)
+	Top.BackgroundColor3 = Library.Theme.Top
+	Instance.new("UICorner", Top).CornerRadius = UDim.new(0,16)
+
+	Dragify(Main, Top)
+
+	local Icon = Instance.new("ImageLabel", Top)
+	Icon.Size = UDim2.fromOffset(28,28)
+	Icon.Position = UDim2.fromOffset(10,9)
+	Icon.BackgroundTransparency = 1
+	Icon.Image = cfg.IconId or ""
+
+	local Title = Instance.new("TextLabel", Top)
+	Title.Position = UDim2.fromOffset(46,0)
+	Title.Size = UDim2.new(1,-50,1,0)
+	Title.Text = cfg.Title or "UI"
 	Title.Font = Enum.Font.GothamBold
 	Title.TextSize = 18
-	Title.TextColor3 = Color3.fromRGB(255,255,255)
+	Title.TextColor3 = Library.Theme.Text
 	Title.BackgroundTransparency = 1
+	Title.TextXAlignment = Left
 
-	local TabsFrame = Instance.new("Frame", Main)
-	TabsFrame.Size = UDim2.fromOffset(150,338)
-	TabsFrame.Position = UDim2.fromOffset(0,42)
-	TabsFrame.BackgroundColor3 = Color3.fromRGB(22,22,22)
+	local Tabs = Instance.new("Frame", Main)
+	Tabs.Size = UDim2.fromOffset(160,374)
+	Tabs.Position = UDim2.fromOffset(0,46)
+	Tabs.BackgroundTransparency = 1
 
 	local Pages = Instance.new("Frame", Main)
-	Pages.Size = UDim2.new(1,-150,1,-42)
-	Pages.Position = UDim2.fromOffset(150,42)
+	Pages.Size = UDim2.new(1,-170,1,-56)
+	Pages.Position = UDim2.fromOffset(170,56)
 	Pages.BackgroundTransparency = 1
 
-	local Window = {}
+	function Window:ToggleUI()
+		visible = not visible
+		Main.Visible = visible
+	end
 
-	--// Create Tab
 	function Window:CreateTab(name)
-		local Btn = Instance.new("TextButton", TabsFrame)
-		Btn.Size = UDim2.new(1,-10,0,38)
-		Btn.Position = UDim2.fromOffset(5,#TabsFrame:GetChildren()*42-38)
+		local Btn = Instance.new("TextButton", Tabs)
+		Btn.Size = UDim2.new(1,-12,0,40)
+		Btn.Position = UDim2.fromOffset(6,#Tabs:GetChildren()*44)
 		Btn.Text = name
 		Btn.Font = Enum.Font.Gotham
 		Btn.TextSize = 14
-		Btn.TextColor3 = Color3.fromRGB(220,220,220)
-		Btn.BackgroundColor3 = Color3.fromRGB(35,35,35)
+		Btn.TextColor3 = Library.Theme.Text
+		Btn.BackgroundColor3 = Library.Theme.Block
 		Instance.new("UICorner", Btn)
 
-		local Page = Instance.new("UIListLayout")
-		local Frame = Instance.new("Frame", Pages)
-		Frame.Size = UDim2.fromScale(1,1)
-		Frame.Visible = false
-		Page.Parent = Frame
-		Page.Padding = UDim.new(0,8)
+		local Page = Instance.new("Frame", Pages)
+		Page.Size = UDim2.fromScale(1,1)
+		Page.Visible = false
+		local Layout = Instance.new("UIListLayout", Page)
+		Layout.Padding = UDim.new(0,10)
 
 		Btn.MouseButton1Click:Connect(function()
 			for _,v in pairs(Pages:GetChildren()) do
 				if v:IsA("Frame") then v.Visible = false end
 			end
-			Frame.Visible = true
+			Page.Visible = true
 		end)
 
-		if #Pages:GetChildren() == 1 then Frame.Visible = true end
+		if #Pages:GetChildren() == 1 then Page.Visible = true end
 
 		local Tab = {}
 
-		-- Toggle
-		function Tab:AddToggle(text, default, cb)
-			local T = Instance.new("TextButton", Frame)
-			T.Size = UDim2.new(1,-10,0,40)
-			T.BackgroundColor3 = Color3.fromRGB(40,40,40)
-			T.Text = text
-			T.TextColor3 = Color3.new(1,1,1)
-			T.Font = Enum.Font.Gotham
-			T.TextSize = 14
-			Instance.new("UICorner", T)
-
-			local state = default
-			T.MouseButton1Click:Connect(function()
-				state = not state
-				T.BackgroundColor3 = state and Color3.fromRGB(70,140,255) or Color3.fromRGB(40,40,40)
-				cb(state)
+		-- Button
+		function Tab:AddButton(text, cb)
+			local B = Instance.new("TextButton", Page)
+			B.Size = UDim2.new(1,-10,0,42)
+			B.Text = text
+			B.Font = Enum.Font.Gotham
+			B.TextSize = 14
+			B.TextColor3 = Library.Theme.Text
+			B.BackgroundColor3 = Library.Theme.Block
+			Instance.new("UICorner", B)
+			B.MouseButton1Click:Connect(function()
+				pcall(cb)
 			end)
 		end
 
-		-- Slider
-		function Tab:AddSlider(text, def, min, max, cb)
-			local S = Instance.new("TextButton", Frame)
-			S.Size = UDim2.new(1,-10,0,40)
-			S.Text = text.." : "..def
-			S.BackgroundColor3 = Color3.fromRGB(40,40,40)
-			S.TextColor3 = Color3.new(1,1,1)
-			S.Font = Enum.Font.Gotham
-			S.TextSize = 14
-			Instance.new("UICorner", S)
+		-- Toggle Switch (Professional)
+		function Tab:AddToggle(text, default, cb)
+			local Hold = Instance.new("Frame", Page)
+			Hold.Size = UDim2.new(1,-10,0,42)
+			Hold.BackgroundColor3 = Library.Theme.Block
+			Instance.new("UICorner", Hold)
 
-			local value = def
-			S.MouseButton1Click:Connect(function()
-				value = math.clamp(value+1,min,max)
-				S.Text = text.." : "..value
-				cb(value)
+			local Label = Instance.new("TextLabel", Hold)
+			Label.Text = text
+			Label.Font = Enum.Font.Gotham
+			Label.TextSize = 14
+			Label.TextColor3 = Library.Theme.Text
+			Label.BackgroundTransparency = 1
+			Label.Position = UDim2.fromOffset(10,0)
+			Label.Size = UDim2.new(1,-80,1,0)
+			Label.TextXAlignment = Left
+
+			local Switch = Instance.new("Frame", Hold)
+			Switch.Size = UDim2.fromOffset(46,22)
+			Switch.Position = UDim2.fromOffset(Hold.AbsoluteSize.X-60,10)
+			Switch.AnchorPoint = Vector2.new(1,0)
+			Switch.BackgroundColor3 = default and Library.Theme.Accent or Color3.fromRGB(80,80,80)
+			Instance.new("UICorner", Switch).CornerRadius = UDim.new(1,0)
+
+			local Circle = Instance.new("Frame", Switch)
+			Circle.Size = UDim2.fromOffset(18,18)
+			Circle.Position = default and UDim2.fromOffset(24,2) or UDim2.fromOffset(2,2)
+			Circle.BackgroundColor3 = Color3.new(1,1,1)
+			Instance.new("UICorner", Circle).CornerRadius = UDim.new(1,0)
+
+			local state = default
+			Hold.InputBegan:Connect(function(i)
+				if i.UserInputType == Enum.UserInputType.MouseButton1 then
+					state = not state
+					TweenService:Create(Circle,TweenInfo.new(0.2),
+						{Position = state and UDim2.fromOffset(24,2) or UDim2.fromOffset(2,2)}):Play()
+					TweenService:Create(Switch,TweenInfo.new(0.2),
+						{BackgroundColor3 = state and Library.Theme.Accent or Color3.fromRGB(80,80,80)}):Play()
+					cb(state)
+				end
+			end)
+		end
+
+		-- Slider (Drag)
+		function Tab:AddSlider(text, def, min, max, cb)
+			local Hold = Instance.new("Frame", Page)
+			Hold.Size = UDim2.new(1,-10,0,50)
+			Hold.BackgroundColor3 = Library.Theme.Block
+			Instance.new("UICorner", Hold)
+
+			local Label = Instance.new("TextLabel", Hold)
+			Label.Text = text.." : "..def
+			Label.Font = Enum.Font.Gotham
+			Label.TextSize = 13
+			Label.TextColor3 = Library.Theme.Text
+			Label.BackgroundTransparency = 1
+			Label.Position = UDim2.fromOffset(10,4)
+			Label.Size = UDim2.new(1,-20,0,20)
+			Label.TextXAlignment = Left
+
+			local Bar = Instance.new("Frame", Hold)
+			Bar.Size = UDim2.new(1,-20,0,8)
+			Bar.Position = UDim2.fromOffset(10,32)
+			Bar.BackgroundColor3 = Color3.fromRGB(70,70,70)
+			Instance.new("UICorner", Bar)
+
+			local Fill = Instance.new("Frame", Bar)
+			Fill.Size = UDim2.fromScale((def-min)/(max-min),1)
+			Fill.BackgroundColor3 = Library.Theme.Accent
+			Instance.new("UICorner", Fill)
+
+			local dragging = false
+			Bar.InputBegan:Connect(function(i)
+				if i.UserInputType == Enum.UserInputType.MouseButton1 then
+					dragging = true
+				end
+			end)
+			Bar.InputEnded:Connect(function(i)
+				if i.UserInputType == Enum.UserInputType.MouseButton1 then
+					dragging = false
+				end
+			end)
+			UIS.InputChanged:Connect(function(i)
+				if dragging then
+					local pos = math.clamp((i.Position.X-Bar.AbsolutePosition.X)/Bar.AbsoluteSize.X,0,1)
+					Fill.Size = UDim2.fromScale(pos,1)
+					local val = math.floor(min+(max-min)*pos)
+					Label.Text = text.." : "..val
+					cb(val)
+				end
 			end)
 		end
 
 		-- Textbox
 		function Tab:AddTextbox(text, placeholder, cb)
-			local Box = Instance.new("TextBox", Frame)
-			Box.Size = UDim2.new(1,-10,0,40)
+			local Box = Instance.new("TextBox", Page)
+			Box.Size = UDim2.new(1,-10,0,42)
 			Box.PlaceholderText = placeholder
 			Box.Text = ""
-			Box.BackgroundColor3 = Color3.fromRGB(40,40,40)
-			Box.TextColor3 = Color3.new(1,1,1)
 			Box.Font = Enum.Font.Gotham
 			Box.TextSize = 14
+			Box.TextColor3 = Library.Theme.Text
+			Box.BackgroundColor3 = Library.Theme.Block
 			Instance.new("UICorner", Box)
-
 			Box.FocusLost:Connect(function()
 				cb(Box.Text)
 			end)
-		end
-
-		-- Switch
-		function Tab:AddSwitch(text, def, cb)
-			self:AddToggle(text, def, cb)
 		end
 
 		return Tab
